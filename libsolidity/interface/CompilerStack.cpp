@@ -346,7 +346,22 @@ bool CompilerStack::parse()
 		Source& source = m_sources[path];
 		source.ast = parser.parse(*source.charStream);
 		if (!source.ast)
-			solAssert(Error::containsErrors(m_errorReporter.errors()), "Parser returned null but did not report error.");
+		{
+			bool error = true;
+			Json::Value assemblyJson;
+			std::string const& otherSource = source.charStream->source();
+			if (util::jsonParseStrict(otherSource, assemblyJson))
+				if (assemblyJson[".code"].isArray())
+				{
+					source.assemblyJson = std::make_shared<Json::Value>(assemblyJson);
+					m_errorReporter.clear();
+					error = false;
+				}
+			if (error)
+				solAssert(
+					Error::containsErrors(m_errorReporter.errors()), "Parser returned null but did not report error."
+				);
+		}
 		else
 		{
 			source.ast->annotation().path = path;
@@ -402,11 +417,21 @@ bool CompilerStack::analyze()
 		solThrow(CompilerError, "Must call analyze only after parsing was performed.");
 	resolveImports();
 
+	bool assemblyJson = false;
+
 	for (Source const* source: m_sourceOrder)
 		if (source->ast)
 			Scoper::assignScopes(*source->ast);
+		else if (source->assemblyJson)
+			assemblyJson = true;
 
 	bool noErrors = true;
+
+	if (assemblyJson)
+	{
+		// TODO: more validation.
+		return m_sources.size() == 1;
+	}
 
 	try
 	{
@@ -630,6 +655,48 @@ bool CompilerStack::compile(State _stopAfter)
 
 	// Only compile contracts individually which have been requested.
 	map<ContractDefinition const*, shared_ptr<Compiler const>> otherCompilers;
+
+	bool assemblyJson = false;
+	for (Source const* source: m_sourceOrder)
+		if (source->assemblyJson)
+		{
+			assemblyJson = true;
+			break;
+		}
+
+	if (assemblyJson)
+	{
+		bool result = false;
+		map<string, unsigned> sourceIndicesMap;
+		unsigned id = 0;
+		m_contracts.clear();
+
+		std::string source = m_sources.begin()->first;
+		m_contracts[source].evmAssembly = std::make_shared<evmasm::Assembly>();
+		result = m_contracts[source].evmAssembly->loadFromAssemblyJSON(*m_sources.begin()->second.assemblyJson);
+		m_contracts[source].object = m_contracts[source].evmAssembly->assemble();
+		for (auto const& item: m_contracts[source].evmAssembly->sources())
+			sourceIndicesMap[*item] = id++;
+		m_contracts[source].sourceMapping.emplace(
+			evmasm::AssemblyItem::computeSourceMapping(m_contracts[source].evmAssembly->items(), sourceIndicesMap));
+		if (result)
+		{
+			sourceIndicesMap.clear();
+			id = 0;
+			m_contracts[source].evmRuntimeAssembly = std::make_shared<evmasm::Assembly>();
+			result &= m_contracts[source].evmRuntimeAssembly->loadFromAssemblyJSON(
+				(*m_sources.begin()->second.assemblyJson)[".data"]["0"]);
+			m_contracts[source].runtimeObject = m_contracts[source].evmRuntimeAssembly->assemble();
+			for (auto const& item: m_contracts[source].evmRuntimeAssembly->sources())
+				sourceIndicesMap[*item] = id++;
+			m_contracts[source].runtimeSourceMapping.emplace(
+				evmasm::AssemblyItem::
+					computeSourceMapping(m_contracts[source].evmRuntimeAssembly->items(), sourceIndicesMap));
+			if (result)
+				m_stackState = CompilationSuccessful;
+		}
+		return result;
+	}
 
 	for (Source const* source: m_sourceOrder)
 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
@@ -910,8 +977,12 @@ Json::Value CompilerStack::assemblyJSON(string const& _contractName) const
 vector<string> CompilerStack::sourceNames() const
 {
 	vector<string> names;
-	for (auto const& s: m_sources)
-		names.push_back(s.first);
+	if (!m_contracts.empty() && m_contracts.begin()->second.evmAssembly.get() && !m_contracts.begin()->second.evmAssembly->sources().empty())
+		for (auto const& s: m_contracts.begin()->second.evmAssembly->sources())
+			names.push_back(*s);
+	else
+		for (auto const& s: m_sources)
+			names.push_back(s.first);
 	return names;
 }
 

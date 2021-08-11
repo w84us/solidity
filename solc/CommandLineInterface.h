@@ -28,6 +28,7 @@
 #include <libsolidity/interface/DebugSettings.h>
 #include <libsolidity/interface/FileReader.h>
 #include <libyul/AssemblyStack.h>
+#include <libevmasm/Assembly.h>
 
 #include <iostream>
 #include <memory>
@@ -75,6 +76,8 @@ private:
 	static std::string objectWithLinkRefsHex(evmasm::LinkerObject const& _obj);
 
 	bool assemble(yul::AssemblyStack::Language _language, yul::AssemblyStack::Machine _targetMachine);
+
+	bool assembleFromAssemblyJson();
 
 	void outputCompilationResults();
 

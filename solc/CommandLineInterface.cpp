@@ -154,7 +154,11 @@ static bool coloredOutput(CommandLineOptions const& _options)
 
 void CommandLineInterface::handleBinary(string const& _contract)
 {
-	solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+	solAssert(
+		m_options.input.mode == InputMode::Compiler ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson ||
+		m_options.input.mode == InputMode::CompilerWithASTImport, ""
+	);
 
 	if (m_options.compiler.outputs.binary)
 	{
@@ -180,7 +184,11 @@ void CommandLineInterface::handleBinary(string const& _contract)
 
 void CommandLineInterface::handleOpcode(string const& _contract)
 {
-	solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+	solAssert(
+		m_options.input.mode == InputMode::Compiler ||
+		m_options.input.mode == InputMode::CompilerWithASTImport ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson, ""
+	);
 
 	if (!m_options.output.dir.empty())
 		createFile(m_compiler->filesystemFriendlyName(_contract) + ".opcode", evmasm::disassemble(m_compiler->object(_contract).bytecode));
@@ -249,7 +257,11 @@ void CommandLineInterface::handleEwasm(string const& _contractName)
 
 void CommandLineInterface::handleBytecode(string const& _contract)
 {
-	solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+	solAssert(
+		m_options.input.mode == InputMode::Compiler ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson ||
+		m_options.input.mode == InputMode::CompilerWithASTImport, ""
+	);
 
 	if (m_options.compiler.outputs.opcodes)
 		handleOpcode(_contract);
@@ -597,14 +609,14 @@ bool CommandLineInterface::processInput()
 		return true;
 	}
 	case InputMode::Assembler:
-	{
 		return assemble(m_options.assembly.inputLanguage, m_options.assembly.targetMachine);
-	}
 	case InputMode::Linker:
 		return link();
 	case InputMode::Compiler:
 	case InputMode::CompilerWithASTImport:
 		return compile();
+	case InputMode::ImportEVMAssemblyJson:
+		return assembleFromAssemblyJson();
 	}
 
 	solAssert(false, "");
@@ -719,7 +731,11 @@ bool CommandLineInterface::compile()
 
 void CommandLineInterface::handleCombinedJSON()
 {
-	solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+	solAssert(
+		m_options.input.mode == InputMode::Compiler ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson ||
+		m_options.input.mode == InputMode::CompilerWithASTImport, ""
+	);
 
 	if (!m_options.compiler.combinedJsonRequests.has_value())
 		return;
@@ -786,7 +802,6 @@ void CommandLineInterface::handleCombinedJSON()
 	{
 		// Indices into this array are used to abbreviate source names in source locations.
 		output[g_strSourceList] = Json::Value(Json::arrayValue);
-
 		for (auto const& source: m_compiler->sourceNames())
 			output[g_strSourceList].append(source);
 	}
@@ -811,7 +826,11 @@ void CommandLineInterface::handleCombinedJSON()
 
 void CommandLineInterface::handleAst()
 {
-	solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+	solAssert(
+		m_options.input.mode == InputMode::Compiler ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson ||
+		m_options.input.mode == InputMode::CompilerWithASTImport, ""
+	);
 
 	if (!m_options.compiler.outputs.astCompactJson)
 		return;
@@ -845,14 +864,17 @@ void CommandLineInterface::handleAst()
 
 bool CommandLineInterface::actOnInput()
 {
-	if (m_options.input.mode == InputMode::StandardJson || m_options.input.mode == InputMode::Assembler)
+	if (
+			m_options.input.mode == InputMode::StandardJson ||
+			m_options.input.mode == InputMode::Assembler
+	)
 		// Already done in "processInput" phase.
 		return true;
 	else if (m_options.input.mode == InputMode::Linker)
 		writeLinkedFiles();
 	else
 	{
-		solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+		solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport || m_options.input.mode == InputMode::ImportEVMAssemblyJson, "");
 		outputCompilationResults();
 	}
 	return !m_outputFailed;
@@ -963,7 +985,11 @@ string CommandLineInterface::objectWithLinkRefsHex(evmasm::LinkerObject const& _
 
 bool CommandLineInterface::assemble(yul::AssemblyStack::Language _language, yul::AssemblyStack::Machine _targetMachine)
 {
-	solAssert(m_options.input.mode == InputMode::Assembler, "");
+	solAssert(
+		m_options.input.mode == InputMode::Assembler ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson,
+		""
+	);
 
 	bool successful = true;
 	map<string, yul::AssemblyStack> assemblyStacks;
@@ -1046,9 +1072,23 @@ bool CommandLineInterface::assemble(yul::AssemblyStack::Language _language, yul:
 	return true;
 }
 
+bool CommandLineInterface::assembleFromAssemblyJson()
+{
+	solAssert(m_options.input.mode == InputMode::ImportEVMAssemblyJson, "");
+	solAssert(m_fileReader.sourceCodes().size() == 1, "");
+
+	m_compiler = make_unique<CompilerStack>(m_fileReader.reader());
+	m_compiler->setSources({{m_fileReader.sourceCodes().begin()->first, m_fileReader.sourceCodes().begin()->second}});
+	return m_compiler->compile();
+}
+
 void CommandLineInterface::outputCompilationResults()
 {
-	solAssert(m_options.input.mode == InputMode::Compiler || m_options.input.mode == InputMode::CompilerWithASTImport, "");
+	solAssert(
+		m_options.input.mode == InputMode::Compiler ||
+		m_options.input.mode == InputMode::ImportEVMAssemblyJson ||
+		m_options.input.mode == InputMode::CompilerWithASTImport, ""
+	);
 
 	handleCombinedJSON();
 
@@ -1093,15 +1133,18 @@ void CommandLineInterface::outputCompilationResults()
 			handleGasEstimation(contract);
 
 		handleBytecode(contract);
-		handleIR(contract);
-		handleIROptimized(contract);
-		handleEwasm(contract);
-		handleSignatureHashes(contract);
-		handleMetadata(contract);
-		handleABI(contract);
-		handleStorageLayout(contract);
-		handleNatspec(true, contract);
-		handleNatspec(false, contract);
+		if (m_options.input.mode != InputMode::ImportEVMAssemblyJson)
+		{
+			handleIR(contract);
+			handleIROptimized(contract);
+			handleEwasm(contract);
+			handleSignatureHashes(contract);
+			handleMetadata(contract);
+			handleABI(contract);
+			handleStorageLayout(contract);
+			handleNatspec(true, contract);
+			handleNatspec(false, contract);
+		}
 	} // end of contracts iteration
 
 	if (!m_hasOutput)

@@ -355,6 +355,7 @@ private:
 	{
 		std::shared_ptr<langutil::CharStream> charStream;
 		std::shared_ptr<SourceUnit> ast;
+		std::shared_ptr<Json::Value> assemblyJson;
 		util::h256 mutable keccak256HashCached;
 		util::h256 mutable swarmHashCached;
 		std::string mutable ipfsUrlCached;

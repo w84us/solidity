@@ -112,17 +112,18 @@ BOOST_AUTO_TEST_SUITE(CommandLineInterfaceTest)
 
 BOOST_AUTO_TEST_CASE(multiple_input_modes)
 {
-	array<string, 6> inputModeOptions = {
+	array<string, 7> inputModeOptions = {
 		"--standard-json",
 		"--link",
 		"--assemble",
 		"--strict-assembly",
 		"--yul",
 		"--import-ast",
+		"--import-asm-json"
 	};
 	string expectedMessage =
 		"The following options are mutually exclusive: "
-		"--standard-json, --link, --assemble, --strict-assembly, --yul, --import-ast. "
+		"--standard-json, --link, --assemble, --strict-assembly, --yul, --import-ast, --import-asm-json. "
 		"Select at most one.\n";
 
 	for (string const& mode1: inputModeOptions)
