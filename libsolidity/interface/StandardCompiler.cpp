@@ -55,8 +55,8 @@ Json formatError(
 	string const& _component,
 	string const& _message,
 	string const& _formattedMessage = "",
-	Json const& _sourceLocation,
-	Json const& _secondarySourceLocation
+	Json const& _sourceLocation = Json{},
+	Json const& _secondarySourceLocation = Json{}
 )
 {
 	Json error{Json::object()};
