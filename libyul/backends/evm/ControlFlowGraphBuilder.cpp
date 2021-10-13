@@ -23,6 +23,7 @@
 #include <libyul/AST.h>
 #include <libyul/Exceptions.h>
 #include <libyul/Utilities.h>
+#include <libyul/ControlFlowSideEffectsCollector.h>
 
 #include <libsolutil/cxx20.h>
 #include <libsolutil/Visitor.h>
@@ -135,7 +136,9 @@ std::unique_ptr<CFG> ControlFlowGraphBuilder::build(
 	auto result = std::make_unique<CFG>();
 	result->entry = &result->makeBlock(debugDataOf(_block));
 
-	ControlFlowGraphBuilder builder(*result, _analysisInfo, _dialect);
+	// TODO this only works for hoisted and disambiguated functions :(
+	ControlFlowSideEffectsCollector sideEffects(_dialect, _block);
+	ControlFlowGraphBuilder builder(*result, _analysisInfo, sideEffects.functionSideEffects(), _dialect);
 	builder.m_currentBlock = result->entry;
 	builder(_block);
 
@@ -151,10 +154,12 @@ std::unique_ptr<CFG> ControlFlowGraphBuilder::build(
 ControlFlowGraphBuilder::ControlFlowGraphBuilder(
 	CFG& _graph,
 	AsmAnalysisInfo const& _analysisInfo,
+	map<YulString, ControlFlowSideEffects> const& _functionSideEffects,
 	Dialect const& _dialect
 ):
 	m_graph(_graph),
 	m_info(_analysisInfo),
+	m_functionSideEffects(_functionSideEffects),
 	m_dialect(_dialect)
 {
 }
@@ -447,6 +452,7 @@ CFG::Operation const& ControlFlowGraphBuilder::visitFunctionCall(FunctionCall co
 		Stack inputs{FunctionCallReturnLabelSlot{_call}};
 		for (auto const& arg: _call.arguments | ranges::views::reverse)
 			inputs.emplace_back(std::visit(*this, arg));
+		// TODO incorporate side-effects (especially "does not continue")
 		return m_currentBlock->operations.emplace_back(CFG::Operation{
 			// input
 			std::move(inputs),
