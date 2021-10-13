@@ -23,6 +23,13 @@ namespace solidity::yul
 
 /**
  * Side effects of a user-defined or builtin function.
+ *
+ * Each of the three booleans represents a reachability condition. There is an implied
+ * fourth alternative, which is going out of gas while executing the function. Since
+ * this can always happen and depends on the supply of gas, it is not considered.
+ *
+ * If all three booleans are false, it means that the function always leads to infinite
+ * recursion.
  */
 struct ControlFlowSideEffects
 {
