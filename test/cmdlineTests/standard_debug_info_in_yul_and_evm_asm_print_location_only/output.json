@@ -186,7 +186,6 @@ object \"C_6\" {
     code {
         {
             /// @src 0:60:101
-            mstore(64, 128)
             if callvalue() { revert(0, 0) }
             let _1 := datasize(\"C_6_deployed\")
             codecopy(128, dataoffset(\"C_6_deployed\"), _1)
@@ -198,7 +197,6 @@ object \"C_6\" {
         code {
             {
                 /// @src 0:60:101
-                mstore(64, 128)
                 if iszero(lt(calldatasize(), 4))
                 {
                     let _1 := 0
