@@ -16,19 +16,7 @@
 // step: fullSuite
 //
 // {
-//     {
-//         pop(mstore_(7))
-//         nonmstore(70)
-//     }
-//     function nonmstore(x)
-//     {
-//         nonmstore(x)
-//         sstore(10, calldataload(2))
-//     }
-//     function mstore_(x) -> y
-//     {
-//         pop(mstore_(x))
-//         y := 8
-//         sstore(y, calldataload(y))
-//     }
+//     { mstore_(7) }
+//     function mstore_(x)
+//     { mstore_(x) }
 // }

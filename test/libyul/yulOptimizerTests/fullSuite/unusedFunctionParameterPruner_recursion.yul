@@ -13,16 +13,7 @@
 // step: fullSuite
 //
 // {
-//     {
-//         let x, y, z := f()
-//         sstore(0, x)
-//         sstore(1, z)
-//     }
-//     function f() -> x, y, z
-//     {
-//         let x_1, y_1, z_1 := f()
-//         y := y_1
-//         z := z_1
-//         x := add(x_1, 1)
-//     }
+//     { f() }
+//     function f()
+//     { f() }
 // }
