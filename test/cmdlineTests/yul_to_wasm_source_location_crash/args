@@ -1,0 +1,2 @@
+--strict-assembly --yul-dialect evm --machine ewasm
+

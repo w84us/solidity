@@ -15,6 +15,7 @@ Compiler Features:
 
 
 Bugfixes:
+ * Code Generator: Fix a crash when using ``@use-src`` and compiling from Yul to ewasm
  * Code Generator: Fix constructor source mappings for immutables.
  * Commandline Interface: Fix extra newline character being appended to sources passed through standard input, affecting their hashes.
  * Commandline Interface: Report output selection options unsupported by the selected input mode instead of ignoring them.
