@@ -32,8 +32,8 @@ function test_fn { npm test; }
 
 function trident_test
 {
-    local repo="https://github.com/sushiswap/trident.git"
-    local branch=master
+    local repo="https://github.com/solidity-external-tests/trident.git"
+    local branch=master_080
     local config_file="hardhat.config.ts"
     local config_var=config
     local min_optimizer_level=1
