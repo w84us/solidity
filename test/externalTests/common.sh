@@ -169,7 +169,8 @@ function force_hardhat_compiler_settings
 {
     local config_file="$1"
     local level="$2"
-    local evm_version="${3:-"$CURRENT_EVM_VERSION"}"
+    local config_var_name="$3"
+    local evm_version="${4:-"$CURRENT_EVM_VERSION"}"
 
     printLog "Configuring Hardhat..."
     echo "-------------------------------------"
@@ -184,10 +185,12 @@ function force_hardhat_compiler_settings
     local settings
     settings=$(hardhat_compiler_settings "$SOLCVERSION_SHORT" "$level" "$evm_version")
     if [[ $config_file == *\.js ]]; then
+        [[ $config_var_name == "" ]] || assertFail
         echo "module.exports['solidity'] = ${settings}" >> "$config_file"
     else
         [[ $config_file == *\.ts ]] || assertFail
-        echo "userConfig.solidity = {compilers: [${settings}]}"  >> "$config_file"
+        [[ $config_var_name != "" ]] || assertFail
+        echo "${config_var_name}.solidity = {compilers: [${settings}]}"  >> "$config_file"
     fi
 }
 
@@ -349,9 +352,10 @@ function hardhat_run_test
     local optimizer_level="$2"
     local compile_fn="$3"
     local test_fn="$4"
+    local config_var_name="$5"
 
     hardhat_clean
-    force_hardhat_compiler_settings "$config_file" "$optimizer_level"
+    force_hardhat_compiler_settings "$config_file" "$optimizer_level" "$config_var_name"
     compile_and_run_test compile_fn test_fn hardhat_verify_compiler_version
 }
 
