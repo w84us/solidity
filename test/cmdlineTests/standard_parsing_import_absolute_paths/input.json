@@ -1,0 +1,12 @@
+{
+    "language": "Solidity",
+    "sources": {
+        "/project/../C.sol": {"content": "import \"../L.sol\";"},
+        "/lib/L.sol": {"content": ""}
+    },
+    "settings": {
+        "stopAfter": "parsing",
+        "remappings": [":/project/=/lib/"],
+        "outputSelection": {"*": {"": ["ast"]}}
+    }
+}
