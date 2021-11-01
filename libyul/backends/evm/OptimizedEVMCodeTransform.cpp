@@ -197,7 +197,7 @@ AbstractAssembly::LabelID OptimizedEVMCodeTransform::getFunctionLabel(Scope::Fun
 			functionInfo.function.name.str(),
 			functionInfo.function.arguments.size(),
 			functionInfo.function.returns.size(),
-			{}
+			functionInfo.debugData ? functionInfo.debugData->astID : nullopt
 		) : m_assembly.newLabelId();
 	return m_functionLabels[&functionInfo];
 }
