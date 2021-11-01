@@ -66,7 +66,7 @@ void EVMObjectCompiler::run(Object& _object, bool _optimize)
 	if (_optimize && m_dialect.evmVersion().canOverchargeGasForCall())
 	{
 
-		auto stackErrors = OptimizedEVMCodeTransform::run(m_assembly, *_object.analysisInfo, *_object.code, m_dialect, context);
+		auto stackErrors = OptimizedEVMCodeTransform::run(m_assembly, *_object.analysisInfo, *_object.code, m_dialect, context, true);
 		if (!stackErrors.empty())
 			BOOST_THROW_EXCEPTION(stackErrors.front());
 	}
